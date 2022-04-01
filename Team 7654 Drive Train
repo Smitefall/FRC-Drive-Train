@@ -7,6 +7,7 @@ import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
@@ -16,16 +17,21 @@ public class Robot extends TimedRobot {
 
 
    //Right Motors
-   private final WPI_VictorSPX rightMotor1 = new WPI_VictorSPX(0);
-   private final WPI_VictorSPX rightMotor2 = new WPI_VictorSPX(1);
+   private final WPI_VictorSPX rightMotor1 = new WPI_VictorSPX(1);
+   private final WPI_VictorSPX rightMotor2 = new WPI_VictorSPX(2);
 
    //Left Motors
-   private final WPI_VictorSPX leftMotor1 = new WPI_VictorSPX(2);
-   private final WPI_VictorSPX leftMotor2 = new WPI_VictorSPX(3);
+   private final WPI_VictorSPX leftMotor1 = new WPI_VictorSPX(3);
+   private final WPI_VictorSPX leftMotor2 = new WPI_VictorSPX(4);
+
+   //Shooter Motors
+   private final WPI_VictorSPX shooterMotor1 = new WPI_VictorSPX(5);
+   private final WPI_VictorSPX shooterMotor2 = new WPI_VictorSPX(6);
 
    //Speed Controller Groups
    private final MotorControllerGroup rightMotorControllerGroup = new MotorControllerGroup(rightMotor1, rightMotor2);
    private final MotorControllerGroup leftMotorControllerGroup = new MotorControllerGroup(leftMotor1, leftMotor2);
+   private final MotorControllerGroup shooterMotorControllerGroup = new MotorControllerGroup(shooterMotor1, shooterMotor2);
 
    //Drive Train
    private final DifferentialDrive drivetrain = new DifferentialDrive(rightMotorControllerGroup, leftMotorControllerGroup);
@@ -37,20 +43,36 @@ public class Robot extends TimedRobot {
    private final XboxController xbox = new XboxController(1);
 
    //Pneumatics
-   private final Compressor comp = new Compressor(null);
+   private final Compressor comp = new Compressor(PneumaticsModuleType.CTREPCM);
    private final DoubleSolenoid solenoid = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 0, 4);
-   
-  @Override
-  public void robotInit() {}
+
+   @Override
+  public void robotInit() {
+  }
 
   @Override
   public void robotPeriodic() {}
 
   @Override
-  public void autonomousInit() {}
+  public void autonomousInit() {
+
+    comp.disable();
+
+  }
 
   @Override
-  public void autonomousPeriodic() {}
+  public void autonomousPeriodic() {
+
+    if (Timer.getMatchTime() < 1.5) {
+      drivetrain.arcadeDrive(0, -0.5);
+    } else {
+      drivetrain.stopMotor();
+    }
+    if (Timer.getMatchTime() > 0.7) {
+      shooterMotorControllerGroup.set(0.8);
+    } else if (Timer.getMatchTime() < 1);
+    shooterMotorControllerGroup.set(0);
+  }
 
   @Override
   public void teleopInit() {
@@ -58,25 +80,46 @@ public class Robot extends TimedRobot {
     comp.disable();
 
   }
-
+  
   @Override
   public void teleopPeriodic() {
 
-        drivetrain.arcadeDrive(stick.getY(), stick.getX(), true);
+        drivetrain.arcadeDrive(stick.getX() * 0.7, -stick.getY() * 0.7, true);
         
 
     if (xbox.getLeftBumperPressed()){
       solenoid.set(DoubleSolenoid.Value.kForward);
-    } else if (xbox.getRightBumperPressed()){
-      solenoid.set(DoubleSolenoid.Value.kForward);
+    } else if (xbox.getLeftBumperReleased()){
+      solenoid.set(DoubleSolenoid.Value.kOff);
     }
-
+    if (xbox.getRightBumperPressed()){
+      solenoid.set(DoubleSolenoid.Value.kReverse);
+    } else if (xbox.getRightBumperReleased()){
+      solenoid.set(DoubleSolenoid.Value.kOff);
+    }
+  
     if (xbox.getAButton()){
-      comp.enableDigital();
+      comp.enableDigital();;
     } else if (xbox.getBButton()){
       comp.disable();
     }
+
+//Shooter Output
+
+    if (xbox.getYButtonPressed()){
+      shooterMotorControllerGroup.set(0.8);
+    } else if (xbox.getYButtonReleased()){
+      shooterMotorControllerGroup.set(0);
+    }
+
+//Shooter Intake
+    if (xbox.getXButtonPressed()){
+      shooterMotorControllerGroup.set(-0.8);
+    } else if (xbox.getXButtonReleased()){
+      shooterMotorControllerGroup.set(0);
+    }
   }
+
 
   @Override
   public void disabledInit() {}
@@ -86,7 +129,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testInit() {}
-  
+
   @Override
   public void testPeriodic() {}
 
